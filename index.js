@@ -8,69 +8,82 @@ const PORT = process.env.PORT || 8080;
 
 const USERNAME = process.env.TV_USER;
 const PASSWORD = process.env.TV_PASS;
-const ACCOUNT_ID = process.env.ACCOUNT_ID;
+const ACCOUNT_NAME = process.env.ACCOUNT_NAME;
+const SYMBOL = process.env.SYMBOL || "MNQM6";
 
-// התחברות ל-Tradovate
+const API_BASE = "https://demo.tradovateapi.com/v1";
+
+// התחברות
 async function login() {
-  const res = await axios.post(
-    "https://live.tradovateapi.com/v1/auth/accesstokenrequest",
-    {
-      name: USERNAME,
-      password: PASSWORD,
-      appId: "app",
-      appVersion: "1.0",
-      deviceId: "device",
-    }
-  );
-
+  const res = await axios.post(`${API_BASE}/auth/accessTokenRequest`, {
+    name: USERNAME,
+    password: PASSWORD,
+    appId: "app",
+    appVersion: "1.0",
+    deviceId: "bot",
+  });
   return res.data.accessToken;
+}
+
+// מציאת חשבון
+async function getAccount(token) {
+  const res = await axios.get(`${API_BASE}/account/list`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const acc = res.data.find(a => a.name === ACCOUNT_NAME);
+  if (!acc) throw new Error("Account not found");
+
+  return acc;
 }
 
 // שליחת פקודה
 async function placeOrder(action) {
   const token = await login();
+  const account = await getAccount(token);
 
-  console.log("🔥 Sending order:", action);
+  const side = action === "BUY" ? "Buy" : "Sell";
 
-  await axios.post(
-    "https://live.tradovateapi.com/v1/order/placeorder",
-    {
-      accountId: ACCOUNT_ID,
-      symbol: "MNQ1!",
-      action: action,
-      orderQty: 1,
-      orderType: "Market",
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const order = {
+    accountSpec: account.name,
+    accountId: account.id,
+    action: side,
+    symbol: SYMBOL,
+    orderQty: 1,
+    orderType: "Market",
+    timeInForce: "Day"
+  };
+
+  console.log("🔥 Sending:", order);
+
+  const res = await axios.post(`${API_BASE}/order/placeorder`, order, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  console.log("✅ Order:", res.data);
 }
 
-// 🔥 קבלת Webhook מ-TradingView
+// קבלת webhook
 app.post("/", async (req, res) => {
-  try {
-    const action = req.body.action;
+  console.log("📩 BODY:", req.body);
 
-    console.log("📩 Received:", action);
+  const text = JSON.stringify(req.body).toUpperCase();
 
-    if (action === "BUY") {
-      await placeOrder("Buy");
-    }
+  let action = null;
+  if (text.includes("BUY")) action = "BUY";
+  if (text.includes("SELL")) action = "SELL";
 
-    if (action === "SELL") {
-      await placeOrder("Sell");
-    }
+  if (!action) return res.send("No action");
 
-    res.send("OK");
-  } catch (err) {
-    console.log(err.message);
-    res.send("ERROR");
-  }
+  await placeOrder(action);
+
+  res.send("OK");
+});
+
+app.get("/", (req, res) => {
+  res.send("Bot is running");
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("🚀 Bot started");
 });
