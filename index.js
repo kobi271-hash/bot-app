@@ -1,12 +1,71 @@
-﻿const http = require("http");
+const express = require("express");
+const axios = require("axios");
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Bot is running");
+const app = express();
+app.use(express.json());
+
+const PORT = process.env.PORT || 8080;
+
+// Tradovate credentials
+const USERNAME = process.env.TV_USER;
+const PASSWORD = process.env.TV_PASS;
+const ACCOUNT_ID = process.env.ACCOUNT_ID;
+
+// LOGIN
+async function login() {
+  const res = await axios.post("https://demo.tradovateapi.com/v1/auth/accesstokenrequest", {
+    name: USERNAME,
+    password: PASSWORD,
+    appId: "app",
+    appVersion: "1.0",
+    deviceId: "device"
+  });
+
+  return res.data.accessToken;
+}
+
+// PLACE ORDER
+async function placeOrder(action) {
+  const token = await login();
+
+  console.log("Connected to Tradovate");
+
+  await axios.post(
+    "https://demo.tradovateapi.com/v1/order/placeorder",
+    {
+      accountId: ACCOUNT_ID,
+      symbol: "MNQ1!",
+      action: action,
+      orderQty: 1,
+      orderType: "Market"
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  console.log("Order sent:", action);
+}
+
+// WEBHOOK
+app.post("/", async (req, res) => {
+  console.log("Received:", req.body);
+
+  const action = req.body.action;
+
+  if (action === "BUY" || action === "SELL") {
+    await placeOrder(action);
+  }
+
+  res.send("OK");
 });
 
-const PORT = process.env.PORT || 3000;
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
 
-server.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });
