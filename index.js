@@ -6,14 +6,12 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-// Tradovate credentials
 const USERNAME = process.env.TV_USER;
 const PASSWORD = process.env.TV_PASS;
 const ACCOUNT_ID = process.env.ACCOUNT_ID;
 
-// LOGIN
 async function login() {
-  const res = await axios.post("https://demo.tradovateapi.com/v1/auth/accesstokenrequest", {
+  const res = await axios.post("https://live.tradovateapi.com/v1/auth/accesstokenrequest", {
     name: USERNAME,
     password: PASSWORD,
     appId: "app",
@@ -24,14 +22,13 @@ async function login() {
   return res.data.accessToken;
 }
 
-// PLACE ORDER
 async function placeOrder(action) {
   const token = await login();
 
-  console.log("Connected to Tradovate");
+  console.log("Connected to Tradovate LIVE");
 
   await axios.post(
-    "https://demo.tradovateapi.com/v1/order/placeorder",
+    "https://live.tradovateapi.com/v1/order/placeorder",
     {
       accountId: ACCOUNT_ID,
       symbol: "MNQ1!",
@@ -49,7 +46,6 @@ async function placeOrder(action) {
   console.log("Order sent:", action);
 }
 
-// WEBHOOK
 app.post("/", async (req, res) => {
   console.log("Received:", req.body);
 
