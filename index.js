@@ -1,12 +1,15 @@
-{
-  "name": "bot-app",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.18.2"
-  }
-}
+const express = require("express");
+const axios = require("axios");
+
+const app = express();
+app.use(express.json());
+
+const PORT = process.env.PORT || 8080;
+
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
+
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
+});
