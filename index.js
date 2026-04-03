@@ -8,19 +8,13 @@ const PORT = process.env.PORT || 8080;
 
 const TV_USER = process.env.TV_USER;
 const TV_PASS = process.env.TV_PASS;
-const ACCOUNT_NAME = process.env.ACCOUNT_NAME; // לדוגמה: LTD1007248197001
+const ACCOUNT_NAME = process.env.ACCOUNT_NAME;
 const SYMBOL = process.env.SYMBOL || "MNQM6";
-const TRADOVATE_ENV = (process.env.TRADOVATE_ENV || "demo").toLowerCase();
 
-const API_BASE =
-  TRADOVATE_ENV === "live"
-    ? "https://live.tradovateapi.com/v1"
-    : "https://demo.tradovateapi.com/v1";
+// תמיד דמו
+const API_BASE = "https://demo.tradovateapi.com/v1";
 
-// מונע כפילויות רצופות
 let lastAction = null;
-
-// deviceId עקבי
 const DEVICE_ID = "railway-bot-001";
 
 function getActionFromBody(body) {
@@ -28,7 +22,6 @@ function getActionFromBody(body) {
 
   if (raw.includes('"ACTION":"BUY"')) return "BUY";
   if (raw.includes('"ACTION":"SELL"')) return "SELL";
-
   if (raw.includes("BUY")) return "BUY";
   if (raw.includes("SELL")) return "SELL";
 
@@ -50,7 +43,7 @@ async function login() {
   });
 
   if (!res.data || !res.data.accessToken) {
-    throw new Error("Login failed: no accessToken returned");
+    throw new Error("Login failed: no access token returned");
   }
 
   return res.data.accessToken;
@@ -69,15 +62,15 @@ async function getAccount(accessToken) {
 
   if (!account) {
     throw new Error(
-      `Account not found. Expected ACCOUNT_NAME=${ACCOUNT_NAME}. Available accounts: ${accounts
+      `Account not found. ACCOUNT_NAME=${ACCOUNT_NAME}. Available: ${accounts
         .map((a) => a.name)
         .join(", ")}`
     );
   }
 
   return {
-    accountId: account.id,     // מספרי
-    accountSpec: account.name, // מחרוזת, לדוגמה LTD1007248197001
+    accountId: account.id,
+    accountSpec: account.name,
   };
 }
 
@@ -144,10 +137,9 @@ app.post("/", async (req, res) => {
       result,
     });
   } catch (err) {
-    const msg =
-      err.response?.data
-        ? JSON.stringify(err.response.data)
-        : err.message || "Unknown error";
+    const msg = err.response?.data
+      ? JSON.stringify(err.response.data)
+      : err.message || "Unknown error";
 
     console.error("❌ ERROR:", msg);
     return res.status(500).send(msg);
@@ -156,7 +148,8 @@ app.post("/", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log("🚀 Bot started");
-  console.log(`🌐 Environment: ${TRADOVATE_ENV}`);
   console.log(`📈 Symbol: ${SYMBOL}`);
   console.log(`👤 Account name: ${ACCOUNT_NAME}`);
+  console.log(`🌐 API: ${API_BASE}`);
 });
+
